@@ -1,55 +1,64 @@
 package com.company;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Random;
+import java.util.Scanner;
 
 public class Main {
 
-    static ByteBuffer buff = ByteBuffer.wrap(new byte[0x2000]);
+    static ByteBuffer buff;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        FileInputStream fis = new FileInputStream("../../../covfefe_00403000.bin");
+        byte[] byteBuff = new byte[0x5000];
+        fis.read(byteBuff);
+        buff = ByteBuffer.wrap(byteBuff);
         buff.order(ByteOrder.LITTLE_ENDIAN);
-        buff.putInt(444 + 8, new Random().nextInt() % 8);
+        buff.putInt(0x444 + 8, new Random().nextInt() % 8);
         MutateNTestPass(8, 0x1100, 0x463);
     }
 
-    /*
-    if (!al10) {
-            v6 = (struct s0*)((int32_t)v6 + 3);
-        } else {
-            eax5 = *(struct s0**)((int32_t)a1 + (int32_t)v6 * 4 + 8);
-            if ((int1_t)(eax5 == -1))
-                goto addr_0x4010d1_6;
-            v6 = eax5;
-        }
-        if (a1->f16 == 1) {
-            v11 = a1->f8;
-            fun_4011ea("%c", v11);
-            a1->f16 = 0;
-            a1->f8 = 0;
-        }
-        eax5 = (struct s0*)4;
-        if (a1->f12 == 1) {
-            fun_4011f0("%c", (int32_t)ebp4 - 1);
-            a1->f4 = static_cast<int32_t>(v12);
-            eax5 = a1;
-            eax5->f12 = 0;
-        }
-     */
-    static void MutateNTestPass (int dataMain, int numMax, int data){
+    static int MutateNTestPass (int dataMain, int numMax, int data){
+        int first, second, third, dataA, dataB;
+        boolean testInfo;
+        dataB = dataA = data;
+        Scanner sc = null;
         while (data  + 3 <= numMax) {
-            int first = buff.get(dataMain + data * 4);
-            int second = buff.get(dataMain + data * 4 + 4);
-            int third = buff.get(dataMain + data * 4 + 8);
-            boolean testInfo = StoreNTest(dataMain, first, second, third);
+            first = buff.getInt(dataMain + data * 4);
+            second = buff.getInt(dataMain + data * 4 + 4);
+            third = buff.getInt(dataMain + data * 4 + 8);
+            testInfo = StoreNTest(dataMain, first, second, third);
             if(!testInfo) {
-
+                dataA = buff.getInt(dataB + 3);
+            } else {
+                dataA = buff.getInt(dataMain + dataA * 4 + 8);
+                if (dataA == -1){
+                    return buff.put(dataA, (byte)1).get(dataA);
+                }
+                dataB = dataA;
+            }
+            if(buff.getInt(dataMain + 0x10) == 1){
+                System.out.print((char)buff.getInt(dataMain + 8));
+                buff.putInt(dataMain + 0x10, 0);
+                buff.putInt(dataMain + 8, 0);
+            }
+            if(buff.getInt(dataMain + 12) == 1) {
+                if (sc == null) {
+                    sc = new Scanner(System.in);
+                }
+                buff.putInt(dataA + 4, (int)sc.nextByte());
+                dataA = dataMain;
+                buff.putInt(dataA + 12, 0);
             }
         }
+        return buff.put(dataA, (byte)1).get(dataA);
     }
 
     static boolean StoreNTest(int data, int first, int second, int third){
+        byte retVal;
         int storeVal = buff.getInt(data + second * 4) - buff.getInt(data + first * 4);
         buff.putInt(data + second * 4, storeVal);
         if(third != 0){
