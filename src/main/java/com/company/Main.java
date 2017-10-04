@@ -9,10 +9,10 @@ import java.util.Scanner;
 
 public class Main {
 
-    static ByteBuffer buff;
+    private static ByteBuffer buff;
 
     public static void main(String[] args) throws IOException {
-        FileInputStream fis = new FileInputStream("../../../covfefe_00403000.bin");
+        FileInputStream fis = new FileInputStream(Main.class.getResource("/covfefe_00403000.bin").getPath());
         byte[] byteBuff = new byte[0x5000];
         fis.read(byteBuff);
         buff = ByteBuffer.wrap(byteBuff);
@@ -21,22 +21,23 @@ public class Main {
         MutateNTestPass(8, 0x1100, 0x463);
     }
 
-    static int MutateNTestPass (int dataMain, int numMax, int data){
+    private static void MutateNTestPass(int dataMain, int numMax, int data){
         int first, second, third, dataA, dataB;
         boolean testInfo;
         dataB = dataA = data;
         Scanner sc = null;
-        while (data  + 3 <= numMax) {
-            first = buff.getInt(dataMain + data * 4);
-            second = buff.getInt(dataMain + data * 4 + 4);
-            third = buff.getInt(dataMain + data * 4 + 8);
+        while (dataB  + 3 <= numMax) {
+            first = buff.getInt(dataMain + dataB * 4);
+            second = buff.getInt(dataMain + dataB * 4 + 4);
+            third = buff.getInt(dataMain + dataB * 4 + 8);
             testInfo = StoreNTest(dataMain, first, second, third);
             if(!testInfo) {
-                dataA = buff.getInt(dataB + 3);
+                dataB = buff.getInt(dataB + 3);
             } else {
-                dataA = buff.getInt(dataMain + dataA * 4 + 8);
+                dataA = buff.getInt(dataMain + dataB * 4 + 8);
                 if (dataA == -1){
-                    return buff.put(dataA, (byte)1).get(dataA);
+                    buff.put(dataA, (byte) 1).get(dataA);
+                    return;
                 }
                 dataB = dataA;
             }
@@ -45,6 +46,7 @@ public class Main {
                 buff.putInt(dataMain + 0x10, 0);
                 buff.putInt(dataMain + 8, 0);
             }
+            dataA = 4;
             if(buff.getInt(dataMain + 12) == 1) {
                 if (sc == null) {
                     sc = new Scanner(System.in);
@@ -54,11 +56,10 @@ public class Main {
                 buff.putInt(dataA + 12, 0);
             }
         }
-        return buff.put(dataA, (byte)1).get(dataA);
+        buff.put(dataA, (byte) 1).get(dataA);
     }
 
-    static boolean StoreNTest(int data, int first, int second, int third){
-        byte retVal;
+    private static boolean StoreNTest(int data, int first, int second, int third){
         int storeVal = buff.getInt(data + second * 4) - buff.getInt(data + first * 4);
         buff.putInt(data + second * 4, storeVal);
         if(third != 0){
